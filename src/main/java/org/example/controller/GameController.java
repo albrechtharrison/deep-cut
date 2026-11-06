@@ -7,6 +7,7 @@ import org.example.repository.AnswerRepository;
 import org.example.repository.PlayerSessionRepository;
 import org.example.service.QuestionService;
 import org.example.service.ScoutService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -113,7 +114,12 @@ public class GameController {
                 answer.setPoints(result.points());
                 answer.setScoutReason(result.reason());
             }
-            answerRepo.save(answer);
+            try {
+                answerRepo.save(answer);
+            } catch (DataIntegrityViolationException e) {
+                // Same player locked in twice at once; the other request already saved this answer.
+                return "redirect:/results";
+            }
         }
 
         ps.setLocked(true);
