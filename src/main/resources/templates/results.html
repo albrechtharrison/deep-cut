@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Cut — Results</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1 class="logo">DEEP CUT</h1>
+        <p class="tagline">The scout's verdict, <span th:text="${playerName}"></span>.</p>
+    </header>
+
+    <div class="scoresheet">
+        <div th:each="answer : ${answers}" class="result-block">
+            <div class="result-header">
+                <span class="question-number" th:text="'Q' + ${answer.questionNumber}"></span>
+                <span class="prompt" th:text="${prompts[answer.questionNumber]}"></span>
+            </div>
+            <div th:if="${answer.points > 0}" class="result-body valid">
+                <span class="player-name" th:text="${answer.correctedName}"></span>
+                <span class="score-badge" th:text="${answer.points} + ' pts'"></span>
+                <p class="reason" th:text="${answer.scoutReason}"></p>
+            </div>
+            <div th:if="${answer.points == 0}" class="result-body invalid">
+                <span class="player-name muted" th:text="${answer.correctedName != null and !answer.correctedName.isEmpty()} ? ${answer.correctedName} : 'No answer'"></span>
+                <span class="score-badge zero">0 pts</span>
+                <p class="reason" th:text="${answer.scoutReason}"></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="total-block">
+        <span class="total-label">Daily total</span>
+        <span class="total-score" th:text="${total} + ' / 500'"></span>
+    </div>
+
+    <nav class="nav-links">
+        <a href="/ladder">See today's ladder</a>
+        <a href="/">Back to home</a>
+    </nav>
+</div>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Cut — The Ladder</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1 class="logo">DEEP CUT</h1>
+        <p class="tagline">The ladder — <span th:text="${date}"></span></p>
+    </header>
+
+    <div class="ladder">
+        <div th:if="${entries.isEmpty()}" class="empty-ladder">
+            <p>No one has locked in yet today. Be the first.</p>
+        </div>
+
+        <div th:each="entry, stat : ${entries}" class="ladder-row"
+             th:classappend="${stat.index == 0} ? ' top-dog' : ''">
+            <span class="rank" th:text="${stat.index + 1}"></span>
+            <span class="ladder-name" th:text="${entry.name}"></span>
+            <span class="ladder-score" th:text="${entry.total} + ' pts'"></span>
+        </div>
+    </div>
+
+    <nav class="nav-links">
+        <a href="/">Play today</a>
+    </nav>
+</div>
+</body>
+</html>

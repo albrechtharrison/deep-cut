@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Cut — Play</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1 class="logo">DEEP CUT</h1>
+        <p class="tagline">Today's lines, <span th:text="${playerName}"></span>.</p>
+    </header>
+
+    <form action="/lock-in" method="post" id="gameForm">
+        <div th:each="q : ${questions}" class="question-block">
+            <div class="question-number" th:text="'Q' + ${q.questionNumber}"></div>
+            <p class="prompt" th:text="${q.promptText}"></p>
+            <div class="answer-wrap">
+                <input type="text"
+                       th:name="'answer' + ${q.questionNumber}"
+                       th:id="'answer' + ${q.questionNumber}"
+                       placeholder="Name a player..."
+                       autocomplete="off"
+                       class="answer-input">
+                <span class="spell-hint" th:id="'hint' + ${q.questionNumber}"></span>
+            </div>
+        </div>
+
+        <div class="lock-in-wrap">
+            <p class="lock-warning">Once you lock in, your answers are final.</p>
+            <button type="submit" class="btn-primary btn-lock">Lock In</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const debounce = (fn, ms) => {
+        let t;
+        return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+    };
+
+    document.querySelectorAll('.answer-input').forEach(input => {
+        const hintEl = document.getElementById('hint' + input.id.replace('answer', ''));
+
+        const checkSpelling = debounce(async (name) => {
+            if (!name.trim()) { hintEl.textContent = ''; return; }
+            try {
+                const res = await fetch('/check-spelling', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await res.json();
+                const suggestion = data.suggestion;
+                if (!suggestion || suggestion === 'UNKNOWN') {
+                    hintEl.textContent = 'Unknown player';
+                    hintEl.className = 'spell-hint unknown';
+                } else if (suggestion.toLowerCase() !== name.toLowerCase()) {
+                    hintEl.textContent = 'Did you mean: ' + suggestion + '?';
+                    hintEl.className = 'spell-hint suggest';
+                    hintEl.onclick = () => { input.value = suggestion; hintEl.textContent = ''; };
+                } else {
+                    hintEl.textContent = suggestion;
+                    hintEl.className = 'spell-hint ok';
+                }
+            } catch (e) {
+                hintEl.textContent = '';
+            }
+        }, 600);
+
+        input.addEventListener('input', e => checkSpelling(e.target.value));
+    });
+</script>
+</body>
+</html>

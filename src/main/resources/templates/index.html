@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Cut</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1 class="logo">DEEP CUT</h1>
+        <p class="tagline">Five questions a day. Name a real player who fits.<br>The deeper the cut, the more points the scout gives you.</p>
+    </header>
+
+    <div class="card">
+        <p th:if="${error}" class="error" th:text="${error}"></p>
+        <form action="/join" method="post">
+            <label for="playerName">Your name on the scoresheet</label>
+            <input type="text" id="playerName" name="playerName" placeholder="Enter your name" autocomplete="off" autofocus>
+            <button type="submit" class="btn-primary">Step onto the ice</button>
+        </form>
+    </div>
+
+    <div class="rules">
+        <h3>How scoring works</h3>
+        <ul>
+            <li>Each answer is checked by Claude, the scout. Wrong or skipped answers score 0.</li>
+            <li>The scout rates every correct answer from 1 to 10 on how deep a cut it is — worth 10 to 100 points. A superstar scores low; a 12-game call-up scores high.</li>
+            <li>Misspelled a name? Before you lock in, the scout suggests the right spelling.</li>
+            <li>Your daily total (max 500) sets your rung for the day.</li>
+            <li>You can't see anyone's answers until you lock in all five. Honor system: no looking things up.</li>
+        </ul>
+    </div>
+
+    <nav class="nav-links">
+        <a href="/ladder">Today's ladder</a>
+    </nav>
+</div>
+</body>
+</html>
