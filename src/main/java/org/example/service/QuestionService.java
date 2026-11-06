@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.model.DailyQuestion;
 import org.example.repository.DailyQuestionRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -21,9 +22,10 @@ public class QuestionService {
     private final AnthropicClient client;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public QuestionService(DailyQuestionRepository questionRepo) {
+    public QuestionService(DailyQuestionRepository questionRepo,
+                           @Value("${anthropic.api-key}") String apiKey) {
         this.questionRepo = questionRepo;
-        this.client = AnthropicOkHttpClient.fromEnv();
+        this.client = AnthropicOkHttpClient.builder().apiKey(apiKey).build();
     }
 
     public List<DailyQuestion> getTodaysQuestions() {
@@ -38,9 +40,12 @@ public class QuestionService {
     private List<DailyQuestion> generateAndSaveQuestions(LocalDate date) {
         String prompt = """
                 You are a hockey scout running a daily game called Deep Cut.
-                Generate 5 category prompts for today's game. Each prompt is a category where players name ONE real NHL player who fits.
-                Make them specific enough that many valid answers exist, but reward obscure picks over famous ones.
-                Mix easy and hard categories. Use varied themes: era, position, team, achievement, stat, physical trait, etc.
+                Generate 5 category prompts for today's game. Each prompt is a broad category where players name ONE real NHL player who fits.
+                IMPORTANT: Categories must be broad enough that HUNDREDS of valid answers exist — casual fans should be able to answer every one.
+                The scoring system already rewards obscure picks, so the categories themselves should be accessible.
+                Good examples: "Name an NHL goalie", "Name a player who scored 30+ goals in a season", "Name a player who has won the Stanley Cup", "Name an NHL player from Europe", "Name a player who spent their whole career with one team".
+                Bad examples (too niche): "Name a player who scored their only NHL goal in overtime", "Name a defenseman who won the Conn Smythe before 1975".
+                Mix themes: position, nationality, era, team, achievement, physical trait, playing style.
                 Return ONLY a JSON array with no markdown formatting:
                 [{"number":1,"prompt":"..."},{"number":2,"prompt":"..."},{"number":3,"prompt":"..."},{"number":4,"prompt":"..."},{"number":5,"prompt":"..."}]
                 """;

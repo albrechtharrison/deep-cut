@@ -88,6 +88,7 @@ public class GameController {
         PlayerSession ps = getSession(httpSession);
         if (ps == null) return "redirect:/";
         if (ps.isLocked()) return "redirect:/results";
+        if (!answerRepo.findBySessionOrderByQuestionNumber(ps).isEmpty()) return "redirect:/results";
 
         List<DailyQuestion> questions = questionService.getTodaysQuestions();
 

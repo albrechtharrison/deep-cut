@@ -30,7 +30,7 @@
 
         <div class="lock-in-wrap">
             <p class="lock-warning">Once you lock in, your answers are final.</p>
-            <button type="submit" class="btn-primary btn-lock">Lock In</button>
+            <button type="submit" class="btn-primary btn-lock" id="lockBtn">Lock In</button>
         </div>
     </form>
 </div>
@@ -70,7 +70,13 @@
             }
         }, 600);
 
-        input.addEventListener('input', e => checkSpelling(e.target.value));
+            input.addEventListener('input', e => checkSpelling(e.target.value));
+    });
+
+    document.getElementById('gameForm').addEventListener('submit', () => {
+        const btn = document.getElementById('lockBtn');
+        btn.disabled = true;
+        btn.textContent = 'Sending to the scout...';
     });
 </script>
 </body>

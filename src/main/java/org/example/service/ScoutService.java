@@ -6,6 +6,7 @@ import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.Model;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,8 +17,8 @@ public class ScoutService {
     private final AnthropicClient client;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public ScoutService() {
-        this.client = AnthropicOkHttpClient.fromEnv();
+    public ScoutService(@Value("${anthropic.api-key}") String apiKey) {
+        this.client = AnthropicOkHttpClient.builder().apiKey(apiKey).build();
     }
 
     public String checkSpelling(String rawName) {
