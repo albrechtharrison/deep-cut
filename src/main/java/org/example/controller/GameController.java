@@ -5,6 +5,7 @@ import org.example.model.DailyQuestion;
 import org.example.model.PlayerSession;
 import org.example.repository.AnswerRepository;
 import org.example.repository.PlayerSessionRepository;
+import org.example.service.GameDay;
 import org.example.service.QuestionService;
 import org.example.service.ScoutService;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -50,7 +51,7 @@ public class GameController {
             redirectAttrs.addFlashAttribute("error", "Please enter your name.");
             return "redirect:/";
         }
-        LocalDate today = LocalDate.now();
+        LocalDate today = GameDay.today();
         Optional<PlayerSession> existing = sessionRepo.findByPlayerNameAndPlayDate(name, today);
         PlayerSession ps = existing.orElseGet(() -> sessionRepo.save(new PlayerSession(name, today)));
 
@@ -152,7 +153,7 @@ public class GameController {
 
     @GetMapping("/ladder")
     public String ladder(Model model) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = GameDay.today();
         List<PlayerSession> locked = sessionRepo.findByPlayDateAndLockedTrueOrderByIdAsc(today);
 
         List<Map<String, Object>> entries = locked.stream().map(ps -> {

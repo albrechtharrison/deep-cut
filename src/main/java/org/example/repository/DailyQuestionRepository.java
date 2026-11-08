@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface DailyQuestionRepository extends JpaRepository<DailyQuestion, Long> {
     List<DailyQuestion> findByPlayDateOrderByQuestionNumber(LocalDate playDate);
+    List<DailyQuestion> findByPlayDateBetween(LocalDate from, LocalDate to);
 }
