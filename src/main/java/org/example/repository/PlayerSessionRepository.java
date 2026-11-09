@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface PlayerSessionRepository extends JpaRepository<PlayerSession, Long> {
     Optional<PlayerSession> findByPlayerNameAndPlayDate(String playerName, LocalDate playDate);
     List<PlayerSession> findByPlayDateAndLockedTrueOrderByIdAsc(LocalDate playDate);
+    List<PlayerSession> findByLockedTrue();
 }

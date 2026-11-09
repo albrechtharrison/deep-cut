@@ -358,3 +358,12 @@ input[type="text"]:focus {
 }
 
 .nav-links a:hover { color: var(--gold); }
+
+.ladder-stats {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 0.15rem;
+}
+
+.spell-hint.suggest { cursor: pointer; }

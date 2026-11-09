@@ -29,6 +29,7 @@ public class GameController {
     private final ScoutService scoutService;
     private final PlayerSessionRepository sessionRepo;
     private final AnswerRepository answerRepo;
+    private final java.util.concurrent.ExecutorService gradingPool = java.util.concurrent.Executors.newFixedThreadPool(10);
 
     public GameController(QuestionService questionService, ScoutService scoutService,
                           PlayerSessionRepository sessionRepo, AnswerRepository answerRepo) {
@@ -76,13 +77,18 @@ public class GameController {
 
     @PostMapping("/check-spelling")
     @ResponseBody
-    public ResponseEntity<Map<String, String>> checkSpelling(@RequestBody Map<String, String> body) {
-        String raw = body.getOrDefault("name", "").trim();
+    public ResponseEntity<Map<String, String>> checkSpelling(@RequestBody Map<String, Object> body) {
+        String raw = String.valueOf(body.getOrDefault("name", "")).trim();
         if (raw.isBlank()) {
-            return ResponseEntity.ok(Map.of("suggestion", ""));
+            return ResponseEntity.ok(Map.of("status", "unknown", "name", ""));
         }
-        String suggestion = scoutService.checkSpelling(raw);
-        return ResponseEntity.ok(Map.of("suggestion", suggestion));
+        int number = body.get("question") instanceof Number n ? n.intValue() : 0;
+        String question = questionService.getTodaysQuestions().stream()
+                .filter(q -> q.getQuestionNumber() == number)
+                .map(DailyQuestion::getPromptText)
+                .findFirst().orElse("");
+        ScoutService.NameCheck check = scoutService.checkSpelling(raw, question);
+        return ResponseEntity.ok(Map.of("status", check.status(), "name", check.name()));
     }
 
     @PostMapping("/lock-in")
@@ -94,6 +100,16 @@ public class GameController {
 
         List<DailyQuestion> questions = questionService.getTodaysQuestions();
 
+        // Grade all five at the same time: each check can include a web lookup, so one after another is slow.
+        Map<Integer, java.util.concurrent.CompletableFuture<ScoutService.ScoringResult>> grading = new LinkedHashMap<>();
+        for (DailyQuestion q : questions) {
+            String raw = params.getOrDefault("answer" + q.getQuestionNumber(), "").trim();
+            if (!raw.isBlank()) {
+                grading.put(q.getQuestionNumber(), java.util.concurrent.CompletableFuture.supplyAsync(
+                        () -> scoutService.scoreAnswer(q.getPromptText(), raw), gradingPool));
+            }
+        }
+
         for (DailyQuestion q : questions) {
             String raw = params.getOrDefault("answer" + q.getQuestionNumber(), "").trim();
             Answer answer = new Answer(ps, q.getQuestionNumber(), raw);
@@ -104,13 +120,10 @@ public class GameController {
                 answer.setPoints(0);
                 answer.setScoutReason("No answer given.");
             } else {
-                String corrected = scoutService.checkSpelling(raw);
-                answer.setCorrectedName(corrected.equals("UNKNOWN") ? raw : corrected);
-
-                ScoutService.ScoringResult result = scoutService.scoreAnswer(
-                        q.getPromptText(),
-                        answer.getCorrectedName()
-                );
+                // Grade exactly what the player typed. The scout works out misspellings itself, with the
+                // question as context, instead of us swapping in a "corrected" name that may be someone else.
+                ScoutService.ScoringResult result = grading.get(q.getQuestionNumber()).join();
+                answer.setCorrectedName(result.playerName());
                 answer.setScoutScore(result.score());
                 answer.setPoints(result.points());
                 answer.setScoutReason(result.reason());
@@ -165,6 +178,42 @@ public class GameController {
         model.addAttribute("entries", entries);
         model.addAttribute("date", today);
         return "ladder";
+    }
+
+    /** All-time standings: every locked-in day, grouped by player name (case-insensitive). */
+    @GetMapping("/all-time")
+    public String allTime(Model model) {
+        Map<String, List<int[]>> byPlayer = new LinkedHashMap<>(); // player -> one {dayTotal, wonDay} per day
+        Map<String, String> displayName = new LinkedHashMap<>();
+
+        // Total per session, then which sessions won their day.
+        Map<LocalDate, Integer> bestOfDay = new java.util.HashMap<>();
+        List<Object[]> rows = new java.util.ArrayList<>();
+        for (PlayerSession ps : sessionRepo.findByLockedTrue()) {
+            int total = answerRepo.findBySessionOrderByQuestionNumber(ps).stream().mapToInt(Answer::getPoints).sum();
+            rows.add(new Object[]{ps, total});
+            bestOfDay.merge(ps.getPlayDate(), total, Math::max);
+        }
+        for (Object[] r : rows) {
+            PlayerSession ps = (PlayerSession) r[0];
+            int total = (int) r[1];
+            String key = ps.getPlayerName().trim().toLowerCase();
+            displayName.putIfAbsent(key, ps.getPlayerName().trim());
+            boolean won = total > 0 && total == bestOfDay.get(ps.getPlayDate());
+            byPlayer.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(new int[]{total, won ? 1 : 0});
+        }
+        List<Map<String, Object>> entries = byPlayer.entrySet().stream().map(e -> {
+            List<int[]> days = e.getValue();
+            int total = days.stream().mapToInt(d -> d[0]).sum();
+            int best = days.stream().mapToInt(d -> d[0]).max().orElse(0);
+            int wins = days.stream().mapToInt(d -> d[1]).sum();
+            int avg = Math.round((float) total / days.size());
+            return Map.<String, Object>of("name", displayName.get(e.getKey()), "days", days.size(),
+                    "total", total, "avg", avg, "best", best, "wins", wins);
+        }).sorted((a, b) -> Integer.compare((int) b.get("total"), (int) a.get("total"))).toList();
+
+        model.addAttribute("entries", entries);
+        return "all-time";
     }
 
     private PlayerSession getSession(HttpSession httpSession) {

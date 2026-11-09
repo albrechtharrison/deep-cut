@@ -42,35 +42,35 @@
     };
 
     document.querySelectorAll('.answer-input').forEach(input => {
-        const hintEl = document.getElementById('hint' + input.id.replace('answer', ''));
+        const number = Number(input.id.replace('answer', ''));
+        const hintEl = document.getElementById('hint' + number);
 
         const checkSpelling = debounce(async (name) => {
-            if (!name.trim()) { hintEl.textContent = ''; return; }
+            hintEl.textContent = ''; hintEl.className = 'spell-hint'; hintEl.onclick = null;
+            if (!name.trim()) return;
             try {
                 const res = await fetch('/check-spelling', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name })
+                    body: JSON.stringify({ name, question: number })
                 });
                 const data = await res.json();
-                const suggestion = data.suggestion;
-                if (!suggestion || suggestion === 'UNKNOWN') {
-                    hintEl.textContent = 'Unknown player';
-                    hintEl.className = 'spell-hint unknown';
-                } else if (suggestion.toLowerCase() !== name.toLowerCase()) {
-                    hintEl.textContent = 'Did you mean: ' + suggestion + '?';
+                if (input.value !== name) return; // they kept typing; this answer is stale
+                if (data.status === 'corrected' && data.name) {
+                    hintEl.textContent = 'Did you mean ' + data.name + '? Tap to use it.';
                     hintEl.className = 'spell-hint suggest';
-                    hintEl.onclick = () => { input.value = suggestion; hintEl.textContent = ''; };
-                } else {
-                    hintEl.textContent = suggestion;
+                    hintEl.onclick = () => { input.value = data.name; hintEl.textContent = ''; hintEl.onclick = null; };
+                } else if (data.status === 'exact' && data.name) {
+                    hintEl.textContent = '\u2713 ' + data.name;
                     hintEl.className = 'spell-hint ok';
                 }
+                // Unknown: say nothing. Obscure players are the point of the game; the scout will still check.
             } catch (e) {
                 hintEl.textContent = '';
             }
-        }, 600);
+        }, 700);
 
-            input.addEventListener('input', e => checkSpelling(e.target.value));
+        input.addEventListener('input', e => checkSpelling(e.target.value));
     });
 
     document.getElementById('gameForm').addEventListener('submit', () => {
