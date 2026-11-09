@@ -38,5 +38,14 @@
         <a href="/all-time">All-time leaderboard</a>
     </nav>
 </div>
+<script>
+    // Remember the name on this device so it's the same on the scoresheet every day.
+    const nameInput = document.getElementById('playerName');
+    try {
+        const saved = localStorage.getItem('deepcut-name');
+        if (saved && !nameInput.value) nameInput.value = saved;
+        nameInput.form.addEventListener('submit', () => localStorage.setItem('deepcut-name', nameInput.value.trim()));
+    } catch (e) { /* storage blocked: just type it */ }
+</script>
 </body>
 </html>

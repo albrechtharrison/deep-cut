@@ -20,7 +20,10 @@
                 <span class="prompt" th:text="${prompts[answer.questionNumber]}"></span>
             </div>
             <div th:if="${answer.points > 0}" class="result-body valid">
-                <span class="player-name" th:text="${answer.correctedName}"></span>
+                <span class="player-name">
+                    <span th:text="${answer.correctedName}"></span>
+                    <span th:if="${unique.contains(answer.questionNumber)}" class="tag-unique">Only you</span>
+                </span>
                 <span class="score-badge" th:text="${answer.points} + ' pts'"></span>
                 <p class="reason" th:text="${answer.scoutReason}"></p>
             </div>
@@ -29,12 +32,28 @@
                 <span class="score-badge zero">0 pts</span>
                 <p class="reason" th:text="${answer.scoutReason}"></p>
             </div>
+            <div th:if="${room[answer.questionNumber] != null}" class="room">
+                <span class="room-label">The room</span>
+                <span th:each="pick, st : ${room[answer.questionNumber]}" class="room-pick"
+                      th:classappend="${pick.points == 0} ? ' missed' : ''">
+                    <b th:text="${pick.answer}"></b>
+                    <span th:text="'(' + ${pick.who} + ', ' + ${pick.points} + ')'"></span><span th:if="${!st.last}">,</span>
+                </span>
+            </div>
         </div>
     </div>
 
     <div class="total-block">
         <span class="total-label">Daily total</span>
-        <span class="total-score" th:text="${total} + ' / 500'"></span>
+        <span class="total-right">
+            <span class="total-score" th:text="${total} + ' / 500'"></span>
+            <span class="total-rank" th:text="${rank}"></span>
+        </span>
+    </div>
+
+    <div class="share-wrap">
+        <button type="button" class="btn-primary btn-share" id="shareBtn" th:attr="data-share=${shareText}">Share my score</button>
+        <p class="share-note">Copies your score and a square per question, with no answers, for the group chat.</p>
     </div>
 
     <nav class="nav-links">
@@ -43,5 +62,23 @@
         <a href="/">Back to home</a>
     </nav>
 </div>
+<script>
+    document.getElementById('shareBtn').addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        const text = btn.dataset.share + '\n' + location.origin;
+        try {
+            if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+                await navigator.share({ text });
+                return;
+            }
+            await navigator.clipboard.writeText(text);
+            btn.textContent = 'Copied!';
+        } catch (err) {
+            if (err && err.name === 'AbortError') return;
+            window.prompt('Copy your score:', text);
+        }
+        setTimeout(() => { btn.textContent = 'Share my score'; }, 2000);
+    });
+</script>
 </body>
 </html>

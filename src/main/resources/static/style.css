@@ -367,3 +367,73 @@ input[type="text"]:focus {
 }
 
 .spell-hint.suggest { cursor: pointer; }
+
+/* --- Rank titles, the room, sharing, day tabs --- */
+.total-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; }
+.total-rank {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text);
+}
+
+.tag-unique {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.65rem;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    border: 1px solid var(--gold-dim);
+    border-radius: 2px;
+    vertical-align: middle;
+}
+
+.room {
+    padding: 0.6rem 1.25rem 0.8rem;
+    border-top: 1px dashed var(--border);
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.6;
+}
+.room-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-right: 0.4rem;
+}
+.room-pick b { color: var(--text); font-weight: normal; }
+.room-pick.missed b { text-decoration: line-through; color: var(--muted); }
+
+.share-wrap { text-align: center; margin: -0.5rem 0 2rem; }
+.btn-share { width: 100%; }
+.share-note { margin-top: 0.5rem; font-size: 0.75rem; color: var(--muted); }
+
+.day-tabs { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.25rem; }
+.day-tabs a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.35rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+}
+.day-tabs a.active { color: var(--gold); border-color: var(--gold-dim); }
+
+.rank-chip {
+    margin-left: 0.4rem;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+}
+.tagline.small { font-size: 0.75rem; margin-top: 0.25rem; }
+
+@media (max-width: 480px) {
+    .logo { font-size: 2.2rem; letter-spacing: 0.15em; }
+    .container { padding: 1.5rem 1rem 3rem; }
+}
