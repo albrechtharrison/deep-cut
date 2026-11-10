@@ -32,6 +32,7 @@ public class GameController {
     private final PlayerSessionRepository sessionRepo;
     private final AnswerRepository answerRepo;
     private final GradeCacheRepository gradeCache;
+    private static final int MAX_HINTS_PER_ROUND = 40;
     private final java.util.concurrent.ExecutorService gradingPool = java.util.concurrent.Executors.newFixedThreadPool(10);
 
     public GameController(QuestionService questionService, ScoutService scoutService,
@@ -82,11 +83,25 @@ public class GameController {
 
     @PostMapping("/check-spelling")
     @ResponseBody
-    public ResponseEntity<Map<String, String>> checkSpelling(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Map<String, String>> checkSpelling(@RequestBody Map<String, Object> body, HttpSession httpSession) {
         String raw = String.valueOf(body.getOrDefault("name", "")).trim();
+        if (raw.length() > 60) raw = raw.substring(0, 60);
+        Map<String, String> none = Map.of("status", "unknown", "name", "");
         if (raw.isBlank()) {
-            return ResponseEntity.ok(Map.of("status", "unknown", "name", ""));
+            return ResponseEntity.ok(none);
         }
+        // Hints cost money, so only players in today's game who haven't locked in yet get them,
+        // and each gets plenty for a round (a full round uses about 5).
+        PlayerSession ps = getSession(httpSession);
+        if (ps == null || ps.isLocked() || !ps.getPlayDate().equals(GameDay.today())) {
+            return ResponseEntity.ok(none);
+        }
+        Integer used = (Integer) httpSession.getAttribute("hintChecks");
+        int count = used == null ? 0 : used;
+        if (count >= MAX_HINTS_PER_ROUND) {
+            return ResponseEntity.ok(none);
+        }
+        httpSession.setAttribute("hintChecks", count + 1);
         int number = body.get("question") instanceof Number n ? n.intValue() : 0;
         String question = questionService.getTodaysQuestions().stream()
                 .filter(q -> q.getQuestionNumber() == number)
