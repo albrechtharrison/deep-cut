@@ -422,3 +422,31 @@ input[type="text"]:focus {
     .logo { font-size: 2.2rem; letter-spacing: 0.15em; }
     .container { padding: 1.5rem 1rem 3rem; }
 }
+
+/* --- Lock-in confirmation --- */
+.confirm-box {
+    margin-top: 0.5rem;
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--gold-dim);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.confirm-box[hidden] { display: none; }
+.confirm-title { font-weight: bold; color: var(--gold); }
+.confirm-detail { font-size: 0.9rem; color: var(--text); }
+.btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 0.8rem 1.5rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 3px;
+    font-family: inherit;
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--muted); }

@@ -14,7 +14,7 @@
     </header>
 
     <form action="/lock-in" method="post" id="gameForm">
-        <div th:each="q : ${questions}" class="question-block">
+        <div th:each="q, qStat : ${questions}" class="question-block">
             <div class="question-number" th:text="'Q' + ${q.questionNumber}"></div>
             <p class="prompt" th:text="${q.promptText}"></p>
             <div class="answer-wrap">
@@ -23,6 +23,7 @@
                        th:id="'answer' + ${q.questionNumber}"
                        placeholder="Name a player..."
                        autocomplete="off"
+                       th:attr="enterkeyhint=${qStat.last} ? 'done' : 'next'"
                        class="answer-input">
                 <span class="spell-hint" th:id="'hint' + ${q.questionNumber}"></span>
             </div>
@@ -30,7 +31,14 @@
 
         <div class="lock-in-wrap">
             <p class="lock-warning">Once you lock in, your answers are final.</p>
-            <button type="submit" class="btn-primary btn-lock" id="lockBtn">Lock In</button>
+            <button type="button" class="btn-primary btn-lock" id="lockBtn">Lock In</button>
+
+            <div class="confirm-box" id="confirmBox" hidden>
+                <p class="confirm-title">Ready to send these to the scout?</p>
+                <p class="confirm-detail" id="confirmDetail"></p>
+                <button type="submit" class="btn-primary btn-lock" id="confirmBtn">Yes, lock in my answers</button>
+                <button type="button" class="btn-ghost" id="keepEditing">Keep editing</button>
+            </div>
         </div>
     </form>
 </div>
@@ -73,10 +81,50 @@
         input.addEventListener('input', e => checkSpelling(e.target.value));
     });
 
-    document.getElementById('gameForm').addEventListener('submit', () => {
-        const btn = document.getElementById('lockBtn');
-        btn.disabled = true;
-        btn.textContent = 'Sending to the scout...';
+    const form = document.getElementById('gameForm');
+    const inputs = [...document.querySelectorAll('.answer-input')];
+    const lockBtn = document.getElementById('lockBtn');
+    const confirmBox = document.getElementById('confirmBox');
+    const confirmBtn = document.getElementById('confirmBtn');
+    let confirmed = false;
+
+    // Enter (or "Go"/"Next" on a phone keyboard) moves to the next answer instead of submitting.
+    inputs.forEach((input, i) => {
+        input.addEventListener('keydown', e => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            if (i + 1 < inputs.length) inputs[i + 1].focus();
+            else input.blur();
+        });
+        input.addEventListener('input', () => { if (!confirmBox.hidden) closeConfirm(); });
+    });
+
+    // Step 1: Lock In opens a check showing how many are answered.
+    lockBtn.addEventListener('click', () => {
+        const answered = inputs.filter(x => x.value.trim()).length;
+        const total = inputs.length;
+        document.getElementById('confirmDetail').textContent = answered === total
+            ? 'All ' + total + ' answered. Your answers are final once you lock in.'
+            : "You've answered " + answered + ' of ' + total + '. Skipped questions score 0.';
+        lockBtn.hidden = true;
+        confirmBox.hidden = false;
+        confirmBtn.focus();
+        confirmBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+
+    function closeConfirm() {
+        confirmBox.hidden = true;
+        lockBtn.hidden = false;
+    }
+    document.getElementById('keepEditing').addEventListener('click', closeConfirm);
+
+    // Step 2: only the final button sends the answers.
+    confirmBtn.addEventListener('click', () => { confirmed = true; });
+    form.addEventListener('submit', e => {
+        if (!confirmed) { e.preventDefault(); return; }
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Sending to the scout...';
+        document.getElementById('keepEditing').hidden = true;
     });
 </script>
 </body>
