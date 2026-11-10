@@ -26,10 +26,7 @@
         <div th:each="entry, stat : ${entries}" class="ladder-row"
              th:classappend="${stat.index == 0} ? ' top-dog' : ''">
             <span class="rank" th:text="${stat.index + 1}"></span>
-            <span class="ladder-name">
-                <span th:text="${entry.name}"></span>
-                <span class="ladder-stats" th:text="${entry.rank}"></span>
-            </span>
+            <span class="ladder-name" th:text="${entry.name}"></span>
             <span class="ladder-score" th:text="${entry.total} + ' pts'"></span>
         </div>
     </div>

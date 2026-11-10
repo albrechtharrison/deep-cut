@@ -7,7 +7,6 @@ import org.example.repository.AnswerRepository;
 import org.example.repository.PlayerSessionRepository;
 import org.example.service.GameDay;
 import org.example.service.QuestionService;
-import org.example.service.Rungs;
 import org.example.service.ScoutService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
@@ -189,13 +188,12 @@ public class GameController {
                     : a.getRawInput() == null || a.getRawInput().isBlank() ? "\u2B1C" : "\uD83D\uDFE5");
         }
         String shareText = "DEEP CUT \u00B7 " + ps.getPlayDate().format(java.time.format.DateTimeFormatter.ofPattern("MMM d"))
-                + "\n\uD83C\uDFD2 " + total + "/500 \u00B7 " + Rungs.titleFor(total) + "\n" + squares;
+                + "\n\uD83C\uDFD2 " + total + "/500\n" + squares;
 
         model.addAttribute("playerName", ps.getPlayerName());
         model.addAttribute("answers", answers);
         model.addAttribute("prompts", prompts);
         model.addAttribute("total", total);
-        model.addAttribute("rank", Rungs.titleFor(total));
         model.addAttribute("room", room);
         model.addAttribute("unique", unique);
         model.addAttribute("shareText", shareText);
@@ -211,7 +209,7 @@ public class GameController {
         List<Map<String, Object>> entries = locked.stream().map(ps -> {
             List<Answer> answers = answerRepo.findBySessionOrderByQuestionNumber(ps);
             int total = answers.stream().mapToInt(Answer::getPoints).sum();
-            return Map.<String, Object>of("name", ps.getPlayerName(), "total", total, "rank", Rungs.titleFor(total));
+            return Map.<String, Object>of("name", ps.getPlayerName(), "total", total);
         }).sorted((a, b) -> Integer.compare((int) b.get("total"), (int) a.get("total"))).toList();
 
         model.addAttribute("entries", entries);
@@ -252,7 +250,7 @@ public class GameController {
             int avg = Math.round((float) total / days.size());
             return Map.<String, Object>of("name", displayName.get(e.getKey()), "days", days.size(),
                     "total", total, "avg", avg, "best", best, "wins", wins,
-                    "streak", currentStreak(playedDays.get(e.getKey())), "rank", Rungs.titleFor(avg));
+                    "streak", currentStreak(playedDays.get(e.getKey())));
         }).sorted((a, b) -> Integer.compare((int) b.get("total"), (int) a.get("total"))).toList();
 
         model.addAttribute("entries", entries);

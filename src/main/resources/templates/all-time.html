@@ -11,7 +11,7 @@
     <header>
         <h1 class="logo">DEEP CUT</h1>
         <p class="tagline">All-time leaderboard</p>
-        <p class="tagline small">Ranked by total points. Rank titles use each player's average day.</p>
+        <p class="tagline small">Ranked by total points.</p>
     </header>
 
     <div class="ladder">
@@ -24,7 +24,6 @@
             <span class="rank" th:text="${stat.index + 1}"></span>
             <span class="ladder-name">
                 <span th:text="${entry.name}"></span>
-                <span class="rank-chip" th:text="${entry.rank}"></span>
                 <span class="ladder-stats"
                       th:text="${entry.days} + (${entry.days} == 1 ? ' day' : ' days') + ' · avg ' + ${entry.avg} + ' · best ' + ${entry.best} + (${entry.wins} > 0 ? ' · ' + ${entry.wins} + (${entry.wins} == 1 ? ' daily win' : ' daily wins') : '') + (${entry.streak} > 1 ? ' · 🔥 ' + ${entry.streak} + '-day streak' : '')"></span>
             </span>
