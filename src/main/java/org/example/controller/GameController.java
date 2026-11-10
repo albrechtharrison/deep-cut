@@ -3,7 +3,9 @@ package org.example.controller;
 import org.example.model.Answer;
 import org.example.model.DailyQuestion;
 import org.example.model.PlayerSession;
+import org.example.model.GradeCache;
 import org.example.repository.AnswerRepository;
+import org.example.repository.GradeCacheRepository;
 import org.example.repository.PlayerSessionRepository;
 import org.example.service.GameDay;
 import org.example.service.QuestionService;
@@ -29,14 +31,17 @@ public class GameController {
     private final ScoutService scoutService;
     private final PlayerSessionRepository sessionRepo;
     private final AnswerRepository answerRepo;
+    private final GradeCacheRepository gradeCache;
     private final java.util.concurrent.ExecutorService gradingPool = java.util.concurrent.Executors.newFixedThreadPool(10);
 
     public GameController(QuestionService questionService, ScoutService scoutService,
-                          PlayerSessionRepository sessionRepo, AnswerRepository answerRepo) {
+                          PlayerSessionRepository sessionRepo, AnswerRepository answerRepo,
+                          GradeCacheRepository gradeCache) {
         this.questionService = questionService;
         this.scoutService = scoutService;
         this.sessionRepo = sessionRepo;
         this.answerRepo = answerRepo;
+        this.gradeCache = gradeCache;
     }
 
     @GetMapping("/")
@@ -106,7 +111,7 @@ public class GameController {
             String raw = params.getOrDefault("answer" + q.getQuestionNumber(), "").trim();
             if (!raw.isBlank()) {
                 grading.put(q.getQuestionNumber(), java.util.concurrent.CompletableFuture.supplyAsync(
-                        () -> scoutService.scoreAnswer(q.getPromptText(), raw), gradingPool));
+                        () -> gradeOnce(q, raw), gradingPool));
             }
         }
 
@@ -255,6 +260,33 @@ public class GameController {
 
         model.addAttribute("entries", entries);
         return "all-time";
+    }
+
+    /**
+     * Grade an answer, reusing today's saved verdict when someone already gave the same answer to the same
+     * question. Saves money (popular picks are graded once) and keeps verdicts consistent between friends.
+     */
+    private ScoutService.ScoringResult gradeOnce(DailyQuestion q, String raw) {
+        String key = pickKey(raw);
+        if (!key.isEmpty()) {
+            Optional<GradeCache> saved = gradeCache.findByPlayDateAndQuestionNumberAndAnswerKey(
+                    q.getPlayDate(), q.getQuestionNumber(), key);
+            if (saved.isPresent()) {
+                GradeCache g = saved.get();
+                return new ScoutService.ScoringResult(g.isValid(), g.getScore(), g.isValid() ? g.getScore() * 10 : 0,
+                        g.getPlayerName(), g.getReason(), true);
+            }
+        }
+        ScoutService.ScoringResult result = scoutService.scoreAnswer(q.getPromptText(), raw);
+        if (result.checked() && !key.isEmpty()) {
+            try {
+                gradeCache.save(new GradeCache(q.getPlayDate(), q.getQuestionNumber(), key,
+                        result.valid(), result.score(), result.playerName(), result.reason()));
+            } catch (DataIntegrityViolationException e) {
+                // Another player's identical answer was saved a moment ago; fine.
+            }
+        }
+        return result;
     }
 
     /** Consecutive days played up to today (or up to yesterday, if they haven't played yet today). */

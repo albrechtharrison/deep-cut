@@ -76,9 +76,17 @@
             } catch (e) {
                 hintEl.textContent = '';
             }
-        }, 700);
+        }, 0);
 
-        input.addEventListener('input', e => checkSpelling(e.target.value));
+        // Check once when they leave the box (or tap Next), not on every pause while typing: far fewer calls.
+        let lastChecked = '';
+        input.addEventListener('change', e => {
+            const v = e.target.value.trim();
+            if (v === lastChecked) return;
+            lastChecked = v;
+            checkSpelling(e.target.value);
+        });
+        input.addEventListener('input', () => { hintEl.textContent = ''; hintEl.onclick = null; lastChecked = ''; });
     });
 
     const form = document.getElementById('gameForm');

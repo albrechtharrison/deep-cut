@@ -22,10 +22,19 @@ public class ScoutService {
 
     private static final Logger log = LoggerFactory.getLogger(ScoutService.class);
 
-    /** Grading and name checks both use the strongest current model; facts matter more than speed here. */
-    private static final String MODEL = "claude-opus-5-5";
+    /** Grading: mid-tier model, half the price of the top one, still checks facts with web search when unsure. */
+    private static final String GRADING_MODEL = "claude-sonnet-5-5";
+    /** Name hints are a small spelling task, so they use the cheapest model. */
+    private static final String HINT_MODEL = "claude-haiku-5-5";
 
-    public record ScoringResult(boolean valid, int score, int points, String playerName, String reason) {}
+    /** Remember recent name checks so the same name for the same question is only asked about once. */
+    private final java.util.Map<String, NameCheck> hintCache = java.util.Collections.synchronizedMap(
+            new java.util.LinkedHashMap<>(256, 0.75f, true) {
+                @Override protected boolean removeEldestEntry(java.util.Map.Entry<String, NameCheck> e) { return size() > 2000; }
+            });
+
+    /** checked=false means the scout couldn't grade it (API error); those results are never saved for reuse. */
+    public record ScoringResult(boolean valid, int score, int points, String playerName, String reason, boolean checked) {}
 
     /** status: "exact" (typed name is already a real player), "corrected" (clear misspelling), "unknown". */
     public record NameCheck(String status, String name) {}
@@ -41,6 +50,15 @@ public class ScoutService {
 
     public NameCheck checkSpelling(String rawName, String questionText) {
         if (rawName == null || rawName.isBlank()) return new NameCheck("unknown", "");
+        String cacheKey = normalize(rawName) + "|" + (questionText == null ? "" : questionText);
+        NameCheck cached = hintCache.get(cacheKey);
+        if (cached != null) return cached;
+        NameCheck result = askNameCheck(rawName, questionText);
+        hintCache.put(cacheKey, result);
+        return result;
+    }
+
+    private NameCheck askNameCheck(String rawName, String questionText) {
 
         String prompt = """
                 A hockey trivia player is typing the name of a real hockey player.
@@ -65,7 +83,7 @@ public class ScoutService {
 
         try {
             Message response = client.messages().create(MessageCreateParams.builder()
-                    .model(MODEL)
+                    .model(HINT_MODEL)
                     .maxTokens(2000L)
                     .outputConfig(OutputConfig.builder().effort(OutputConfig.Effort.LOW).build())
                     .addUserMessage(prompt)
@@ -141,9 +159,9 @@ public class ScoutService {
                 typos when the intended player is clear. Grade the player they typed, not a more famous player
                 with a similar name.
 
-                Step 2 - Does that player fit the question? Be accurate, and look it up with web search whenever you
-                are not completely certain (rosters, stints with a team, draft details, birthplaces, career stats,
-                awards and nominations). Sites like hockey-reference.com, eliteprospects.com, hockeydb.com, nhl.com
+                Step 2 - Does that player fit the question? Be accurate. If you already know for sure, answer without
+                searching. If you are not sure (rosters, short stints with a team, draft details, birthplaces, career
+                stats, awards and nominations), look it up with web search, using as few searches as you can. Sites like hockey-reference.com, eliteprospects.com, hockeydb.com, nhl.com
                 and Wikipedia are reliable. Rules of thumb:
                 - "Played for a team" counts any regular-season or playoff NHL game for that franchise, however brief,
                   including when the franchise had an earlier name or city.
@@ -161,10 +179,10 @@ public class ScoutService {
                 """.formatted(mapper.valueToTree(promptText).toString(), mapper.valueToTree(typedAnswer).toString());
 
         MessageCreateParams.Builder params = MessageCreateParams.builder()
-                .model(MODEL)
+                .model(GRADING_MODEL)
                 .maxTokens(16000L)
-                .outputConfig(OutputConfig.builder().effort(OutputConfig.Effort.HIGH).build())
-                .addTool(WebSearchTool20260209.builder().maxUses(4L).build())
+                .outputConfig(OutputConfig.builder().effort(OutputConfig.Effort.MEDIUM).build())
+                .addTool(WebSearchTool20260209.builder().maxUses(2L).build())
                 .addUserMessage(prompt);
 
         try {
@@ -179,10 +197,10 @@ public class ScoutService {
             int score = valid ? Math.max(1, Math.min(10, node.path("score").asInt(5))) : 0;
             String player = node.path("player").asText(typedAnswer).trim();
             String reason = node.path("reason").asText("").trim();
-            return new ScoringResult(valid, score, score * 10, player.isEmpty() ? typedAnswer : player, reason);
+            return new ScoringResult(valid, score, score * 10, player.isEmpty() ? typedAnswer : player, reason, true);
         } catch (Exception e) {
             log.warn("Scoring failed for {} / {}", promptText, typedAnswer, e);
-            return new ScoringResult(false, 0, 0, typedAnswer, "The scout couldn't check this one. Ask the organizer for a re-check.");
+            return new ScoringResult(false, 0, 0, typedAnswer, "The scout couldn't check this one. Ask the organizer for a re-check.", false);
         }
     }
 
