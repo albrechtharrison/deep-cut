@@ -368,7 +368,7 @@ input[type="text"]:focus {
 
 .spell-hint.suggest { cursor: pointer; }
 
-/* --- The room, sharing, day tabs --- */
+/* --- The room, sharing --- */
 .tag-unique {
     display: inline-block;
     margin-left: 0.5rem;
@@ -402,19 +402,6 @@ input[type="text"]:focus {
 .share-wrap { text-align: center; margin: -0.5rem 0 2rem; }
 .btn-share { width: 100%; }
 .share-note { margin-top: 0.5rem; font-size: 0.75rem; color: var(--muted); }
-
-.day-tabs { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.25rem; }
-.day-tabs a {
-    color: var(--muted);
-    text-decoration: none;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 0.35rem 0.8rem;
-    border: 1px solid var(--border);
-    border-radius: 2px;
-}
-.day-tabs a.active { color: var(--gold); border-color: var(--gold-dim); }
 
 .tagline.small { font-size: 0.75rem; margin-top: 0.25rem; }
 

@@ -10,17 +10,12 @@
 <div class="container">
     <header>
         <h1 class="logo">DEEP CUT</h1>
-        <p class="tagline"><span th:text="${yesterday} ? 'Final ladder' : 'The ladder'"></span> — <span th:text="${#temporals.format(date, 'EEEE, MMM d')}"></span></p>
+        <p class="tagline"><span>The ladder</span> — <span th:text="${#temporals.format(date, 'EEEE, MMM d')}"></span></p>
     </header>
-
-    <div class="day-tabs">
-        <a href="/ladder" th:classappend="${!yesterday} ? ' active' : ''">Today</a>
-        <a href="/ladder?day=yesterday" th:classappend="${yesterday} ? ' active' : ''">Yesterday</a>
-    </div>
 
     <div class="ladder">
         <div th:if="${entries.isEmpty()}" class="empty-ladder">
-            <p th:text="${yesterday} ? 'Nobody played yesterday.' : 'No one has locked in yet today. Be the first.'"></p>
+            <p>No one has locked in yet today. Be the first.</p>
         </div>
 
         <div th:each="entry, stat : ${entries}" class="ladder-row"

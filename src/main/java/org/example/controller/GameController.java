@@ -221,9 +221,8 @@ public class GameController {
     }
 
     @GetMapping("/ladder")
-    public String ladder(@RequestParam(required = false) String day, Model model) {
-        boolean yesterday = "yesterday".equals(day);
-        LocalDate date = yesterday ? GameDay.today().minusDays(1) : GameDay.today();
+    public String ladder(Model model) {
+        LocalDate date = GameDay.today();
         List<PlayerSession> locked = sessionRepo.findByPlayDateAndLockedTrueOrderByIdAsc(date);
 
         List<Map<String, Object>> entries = locked.stream().map(ps -> {
@@ -234,7 +233,6 @@ public class GameController {
 
         model.addAttribute("entries", entries);
         model.addAttribute("date", date);
-        model.addAttribute("yesterday", yesterday);
         return "ladder";
     }
 
